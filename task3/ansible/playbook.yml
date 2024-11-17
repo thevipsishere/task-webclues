@@ -1,0 +1,54 @@
+- hosts: web_server
+  become: yes
+  tasks:
+    - name: Update apt packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Install NGINX
+      yum:
+        name: nginx
+        state: present
+
+    - name: Start and enable NGINX
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Install Node.js
+      yum:
+        name: nodejs
+        state: present
+
+    - name: Create Nginx HTML directory
+      file:
+        path: /usr/share/nginx/html
+        state: directory
+
+    - name: Deploy Node.js app
+      copy:
+        src: /home/ec2-user/node-docker-app/
+        dest: /var/www/html
+        remote_src: yes  
+        mode: '0755'  
+
+    - name: Install Node.js dependencies
+      command: npm install
+      args:
+        chdir: /var/www/html
+
+    - name: Configure NGINX
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+        mode: '0644'  
+      notify:
+        - restart nginx
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
